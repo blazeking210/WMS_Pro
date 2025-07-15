@@ -8,6 +8,7 @@ import {
   Clock, 
   BarChart3, 
   Settings,
+  User,
   Warehouse
 } from "lucide-react";
 
@@ -18,6 +19,7 @@ const navigation = [
   { name: "Zone Management", href: "/zones", icon: MapPin },
   { name: "Movement Logs", href: "/movements", icon: Clock },
   { name: "Reports", href: "/reports", icon: BarChart3 },
+  { name: "Profile", href: "/profile", icon: User },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

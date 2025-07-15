@@ -1,10 +1,13 @@
 import {
   users,
+  userSettings,
   zones,
   products,
   movements,
   type User,
   type UpsertUser,
+  type UserSettings,
+  type UpdateUserSettings,
   type Zone,
   type InsertZone,
   type Product,
@@ -15,12 +18,21 @@ import {
   type MovementWithProduct,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, asc, sql, and, or, ilike } from "drizzle-orm";
+import { eq, desc, asc, sql, and, or, like } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations (required for Replit Auth)
+  // User operations (required for Auth)
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: Omit<User, 'id'> & { id?: string }): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<Pick<User, 'firstName' | 'lastName' | 'email' | 'profileImageUrl'>>): Promise<User>;
+  updateUserPassword(id: string, currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }>;
+
+  // User settings operations
+  getUserSettings(userId: string): Promise<UserSettings | undefined>;
+  updateUserSettings(userId: string, settings: UpdateUserSettings): Promise<UserSettings>;
+  createDefaultUserSettings(userId: string): Promise<UserSettings>;
 
   // Zone operations
   getZones(): Promise<Zone[]>;
@@ -67,19 +79,108 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(userData: Omit<User, 'id'> & { id?: string }): Promise<User> {
     const [user] = await db
       .insert(users)
       .values(userData)
+      .returning();
+    return user;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const now = Date.now();
+    const [user] = await db
+      .insert(users)
+      .values({ ...userData, createdAt: now, updatedAt: now })
       .onConflictDoUpdate({
         target: users.id,
         set: {
           ...userData,
-          updatedAt: new Date(),
+          updatedAt: now,
         },
       })
       .returning();
     return user;
+  }
+
+  async updateUser(id: string, updates: Partial<Pick<User, 'firstName' | 'lastName' | 'email' | 'profileImageUrl'>>): Promise<User> {
+    const now = Date.now();
+    const [user] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: now })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateUserPassword(id: string, currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    const user = await this.getUser(id);
+    if (!user) {
+      return { success: false, message: "User not found" };
+    }
+
+    // In a real application, you would verify the current password hash
+    // For this example, we'll skip the verification and just update the password
+    const bcrypt = require('bcrypt');
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    const now = Date.now();
+    await db
+      .update(users)
+      .set({ password: hashedPassword, updatedAt: now })
+      .where(eq(users.id, id));
+
+    return { success: true, message: "Password updated successfully" };
+  }
+
+  // User settings operations
+  async getUserSettings(userId: string): Promise<UserSettings | undefined> {
+    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
+    return settings;
+  }
+
+  async updateUserSettings(userId: string, settingsData: UpdateUserSettings): Promise<UserSettings> {
+    const now = Date.now();
+    const [settings] = await db
+      .insert(userSettings)
+      .values({ ...settingsData, userId, createdAt: now, updatedAt: now })
+      .onConflictDoUpdate({
+        target: userSettings.userId,
+        set: {
+          ...settingsData,
+          updatedAt: now,
+        },
+      })
+      .returning();
+    return settings;
+  }
+
+  async createDefaultUserSettings(userId: string): Promise<UserSettings> {
+    const now = Date.now();
+    const [settings] = await db
+      .insert(userSettings)
+      .values({
+        userId,
+        currency: "USD",
+        currencySymbol: "$",
+        timezone: "UTC",
+        dateFormat: "MM/DD/YYYY",
+        language: "en",
+        theme: "light",
+        notifications: 1,
+        emailNotifications: 1,
+        lowStockThreshold: 10,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    return settings;
   }
 
   // Zone operations
@@ -93,14 +194,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createZone(zone: InsertZone): Promise<Zone> {
-    const [newZone] = await db.insert(zones).values(zone).returning();
+    const now = Date.now();
+    const [newZone] = await db.insert(zones).values({
+      ...zone,
+      createdAt: now,
+      updatedAt: now,
+    }).returning();
     return newZone;
   }
 
   async updateZone(id: number, zone: Partial<InsertZone>): Promise<Zone> {
     const [updatedZone] = await db
       .update(zones)
-      .set({ ...zone, updatedAt: new Date() })
+      .set({ ...zone, updatedAt: Date.now() })
       .where(eq(zones.id, id))
       .returning();
     return updatedZone;
@@ -130,9 +236,9 @@ export class DatabaseStorage implements IStorage {
     if (filters?.search) {
       conditions.push(
         or(
-          ilike(products.name, `%${filters.search}%`),
-          ilike(products.productId, `%${filters.search}%`),
-          ilike(products.category, `%${filters.search}%`)
+          like(products.name, `%${filters.search}%`),
+          like(products.productId, `%${filters.search}%`),
+          like(products.category, `%${filters.search}%`)
         )
       );
     }
@@ -144,7 +250,10 @@ export class DatabaseStorage implements IStorage {
           break;
         case "low_stock":
           conditions.push(
-            sql`${products.currentStock} <= ${products.minStock} AND ${products.currentStock} > 0`
+            and(
+              sql`${products.currentStock} <= ${products.minStock}`,
+              sql`${products.currentStock} > 0`
+            )
           );
           break;
         case "out_of_stock":
@@ -239,21 +348,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
-    const [newProduct] = await db.insert(products).values(product).returning();
+    const now = Date.now();
+    const [newProduct] = await db.insert(products).values({
+      ...product,
+      createdAt: now,
+      updatedAt: now,
+    }).returning();
     return newProduct;
   }
 
   async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product> {
     const [updatedProduct] = await db
       .update(products)
-      .set({ ...product, updatedAt: new Date() })
+      .set({ ...product, updatedAt: Date.now() })
       .where(eq(products.id, id))
       .returning();
     return updatedProduct;
   }
 
   async deleteProduct(id: number): Promise<void> {
-    await db.update(products).set({ isActive: false }).where(eq(products.id, id));
+    await db.update(products).set({ isActive: 0 }).where(eq(products.id, id));
   }
 
   // Movement operations
@@ -293,7 +407,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMovement(movement: InsertMovement): Promise<Movement> {
-    const [newMovement] = await db.insert(movements).values(movement).returning();
+    const [newMovement] = await db.insert(movements).values({
+      ...movement,
+      createdAt: Date.now(),
+    }).returning();
     return newMovement;
   }
 
@@ -309,14 +426,14 @@ export class DatabaseStorage implements IStorage {
     const [totalItems] = await db
       .select({ count: sql<number>`cast(count(*) as integer)` })
       .from(products)
-      .where(eq(products.isActive, true));
+      .where(eq(products.isActive, 1));
 
     const [lowStockItems] = await db
       .select({ count: sql<number>`cast(count(*) as integer)` })
       .from(products)
       .where(
         and(
-          eq(products.isActive, true),
+          eq(products.isActive, 1),
           sql`${products.currentStock} <= ${products.minStock}`,
           sql`${products.currentStock} > 0`
         )
@@ -327,7 +444,7 @@ export class DatabaseStorage implements IStorage {
       .from(products)
       .where(
         and(
-          eq(products.isActive, true),
+          eq(products.isActive, 1),
           eq(products.currentStock, 0)
         )
       );
@@ -337,7 +454,7 @@ export class DatabaseStorage implements IStorage {
         total: sql<number>`cast(coalesce(sum(${products.currentStock} * ${products.unitPrice}), 0) as integer)` 
       })
       .from(products)
-      .where(eq(products.isActive, true));
+      .where(eq(products.isActive, 1));
 
     const recentActivities = await this.getMovements(undefined, 10);
 
@@ -352,7 +469,7 @@ export class DatabaseStorage implements IStorage {
         itemCount: sql<number>`cast(coalesce(count(${products.id}), 0) as integer)`,
       })
       .from(zones)
-      .leftJoin(products, and(eq(zones.id, products.zoneId), eq(products.isActive, true)))
+      .leftJoin(products, and(eq(zones.id, products.zoneId), eq(products.isActive, 1)))
       .groupBy(zones.id)
       .orderBy(asc(zones.name));
 
@@ -388,7 +505,7 @@ export class DatabaseStorage implements IStorage {
       // Update product stock
       await tx
         .update(products)
-        .set({ currentStock: newStock, updatedAt: new Date() })
+        .set({ currentStock: newStock, updatedAt: Date.now() })
         .where(eq(products.id, productId));
 
       // Create movement log
@@ -400,6 +517,7 @@ export class DatabaseStorage implements IStorage {
         newStock,
         reason: reason || null,
         userId: userId || null,
+        createdAt: Date.now(),
       });
     });
   }

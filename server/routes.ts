@@ -1,23 +1,98 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertZoneSchema, insertProductSchema, insertMovementSchema } from "@shared/schema";
+import { setupAuth, isAuthenticated } from "./auth";
+import { insertZoneSchema, insertProductSchema, insertMovementSchema, updateUserSettingsSchema } from "@shared/schema";
 import { z } from "zod";
+import { generateReportData, generateExcelReport, generatePDFReport, ReportFilters } from "./reports";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/me', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  app.put('/api/auth/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { firstName, lastName, email } = req.body;
+      
+      const updatedUser = await storage.updateUser(userId, {
+        firstName,
+        lastName,
+        email,
+      });
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  app.put('/api/auth/password', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { currentPassword, newPassword } = req.body;
+      
+      const result = await storage.updateUserPassword(userId, currentPassword, newPassword);
+      
+      if (!result.success) {
+        return res.status(400).json({ message: result.message });
+      }
+      
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error updating password:", error);
+      res.status(500).json({ message: "Failed to update password" });
+    }
+  });
+
+  // User settings routes
+  app.get('/api/user/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      let settings = await storage.getUserSettings(userId);
+      
+      // Create default settings if none exist
+      if (!settings) {
+        settings = await storage.createDefaultUserSettings(userId);
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching user settings:", error);
+      res.status(500).json({ message: "Failed to fetch user settings" });
+    }
+  });
+
+  app.put('/api/user/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const settingsData = updateUserSettingsSchema.parse(req.body);
+      
+      const settings = await storage.updateUserSettings(userId, settingsData);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating user settings:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ 
+          message: "Invalid settings data", 
+          errors: error.errors 
+        });
+      } else {
+        res.status(500).json({ message: "Failed to update user settings" });
+      }
     }
   });
 
@@ -143,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           previousStock: 0,
           newStock: productData.currentStock,
           reason: "Initial stock",
-          userId: req.user.claims.sub,
+          userId: req.user.id,
         });
       }
       
@@ -193,7 +268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid stock update data" });
       }
 
-      await storage.updateStock(id, quantity, type, reason, req.user.claims.sub);
+      await storage.updateStock(id, quantity, type, reason, req.user.id);
       res.json({ message: "Stock updated successfully" });
     } catch (error) {
       console.error("Error updating stock:", error);
@@ -211,6 +286,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching movements:", error);
       res.status(500).json({ message: "Failed to fetch movements" });
+    }
+  });
+
+  // Report routes
+  app.get('/api/reports/data', isAuthenticated, async (req, res) => {
+    try {
+      const filters: ReportFilters = {
+        startDate: req.query.startDate as string,
+        endDate: req.query.endDate as string,
+        zoneId: req.query.zoneId ? parseInt(req.query.zoneId as string) : undefined,
+        category: req.query.category as string,
+        status: req.query.status as 'in_stock' | 'low_stock' | 'out_of_stock',
+        productId: req.query.productId as string,
+      };
+
+      const reportData = await generateReportData(filters);
+      res.json(reportData);
+    } catch (error) {
+      console.error("Error generating report data:", error);
+      res.status(500).json({ message: "Failed to generate report data" });
+    }
+  });
+
+  app.get('/api/reports/export/excel', isAuthenticated, async (req: any, res) => {
+    try {
+      const filters: ReportFilters = {
+        startDate: req.query.startDate as string,
+        endDate: req.query.endDate as string,
+        zoneId: req.query.zoneId ? parseInt(req.query.zoneId as string) : undefined,
+        category: req.query.category as string,
+        status: req.query.status as 'in_stock' | 'low_stock' | 'out_of_stock',
+        productId: req.query.productId as string,
+      };
+
+      const reportType = req.query.type as string || 'complete';
+      const reportData = await generateReportData(filters);
+      
+      // Get user settings for currency formatting
+      const userId = req.user.id;
+      let userSettings = await storage.getUserSettings(userId);
+      if (!userSettings) {
+        userSettings = await storage.createDefaultUserSettings(userId);
+      }
+      
+      const excelBuffer = await generateExcelReport(reportData, reportType, userSettings);
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `warehouse_report_${reportType}_${timestamp}.xlsx`;
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(excelBuffer);
+    } catch (error) {
+      console.error("Error generating Excel report:", error);
+      res.status(500).json({ message: "Failed to generate Excel report" });
+    }
+  });
+
+  app.get('/api/reports/export/pdf', isAuthenticated, async (req: any, res) => {
+    try {
+      const filters: ReportFilters = {
+        startDate: req.query.startDate as string,
+        endDate: req.query.endDate as string,
+        zoneId: req.query.zoneId ? parseInt(req.query.zoneId as string) : undefined,
+        category: req.query.category as string,
+        status: req.query.status as 'in_stock' | 'low_stock' | 'out_of_stock',
+        productId: req.query.productId as string,
+      };
+
+      const reportType = req.query.type as string || 'complete';
+      const reportData = await generateReportData(filters);
+      
+      // Get user settings for currency formatting
+      const userId = req.user.id;
+      let userSettings = await storage.getUserSettings(userId);
+      if (!userSettings) {
+        userSettings = await storage.createDefaultUserSettings(userId);
+      }
+      
+      const pdfBuffer = await generatePDFReport(reportData, reportType, userSettings);
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `warehouse_report_${reportType}_${timestamp}.pdf`;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating PDF report:", error);
+      res.status(500).json({ message: "Failed to generate PDF report" });
     }
   });
 

@@ -16,6 +16,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { insertProductSchema } from "@shared/schema";
 import { z } from "zod";
 import { useLocation } from "wouter";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { useCurrencyUpdates } from "@/hooks/useCurrencyUpdates";
 
 const productFormSchema = insertProductSchema.extend({
   unitPrice: z.coerce.number().min(0).optional(),
@@ -31,6 +33,10 @@ export default function AddProduct() {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const { getCurrencySymbol, formatCurrency } = useCurrency();
+  
+  // Enable real-time currency updates
+  useCurrencyUpdates();
 
   const { data: zones } = useQuery({
     queryKey: ["/api/zones"],
@@ -210,14 +216,25 @@ export default function AddProduct() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="unitPrice">Unit Price</Label>
-                    <Input
-                      id="unitPrice"
-                      type="number"
-                      step="0.01"
-                      {...register("unitPrice")}
-                      placeholder="0.00"
-                    />
+                    <Label htmlFor="unitPrice">Unit Price ({getCurrencySymbol()})</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                        {getCurrencySymbol()}
+                      </span>
+                      <Input
+                        id="unitPrice"
+                        type="number"
+                        step="0.01"
+                        {...register("unitPrice")}
+                        placeholder="0.00"
+                        className="pl-8"
+                      />
+                    </div>
+                    {watch("unitPrice") && (
+                      <div className="text-sm text-gray-500 mt-1">
+                        Preview: {formatCurrency(watch("unitPrice") || 0)}
+                      </div>
+                    )}
                     {errors.unitPrice && (
                       <p className="text-sm text-red-600 mt-1">{errors.unitPrice.message}</p>
                     )}

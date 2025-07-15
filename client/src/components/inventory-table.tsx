@@ -5,12 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Eye, Trash2, Plus, ArrowUpDown, Package } from "lucide-react";
+import { Edit, Eye, Trash2, Plus, ArrowUpDown, Package, ArrowUpDown as StockMove } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { ProductWithZone } from "@shared/schema";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { useCurrencyUpdates } from "@/hooks/useCurrencyUpdates";
+import EditProductModal from "./edit-product-modal";
+import StockMovementModal from "./stock-movement-modal";
+import TestModal from "./test-modal";
 
 interface InventoryTableProps {
   showFilters?: boolean;
@@ -20,12 +25,21 @@ export default function InventoryTable({ showFilters = false }: InventoryTablePr
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { formatCurrency } = useCurrency();
+  
+  // Enable real-time currency updates
+  useCurrencyUpdates();
   
   const [filters, setFilters] = useState({
     search: "",
     category: "",
     status: "all" as "all" | "in_stock" | "low_stock" | "out_of_stock",
   });
+
+  const [editingProduct, setEditingProduct] = useState<ProductWithZone | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [stockMovementProduct, setStockMovementProduct] = useState<ProductWithZone | null>(null);
+  const [isStockMovementModalOpen, setIsStockMovementModalOpen] = useState(false);
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["/api/products", filters],
@@ -198,6 +212,10 @@ export default function InventoryTable({ showFilters = false }: InventoryTablePr
                 Min. Stock
                 <ArrowUpDown className="ml-1 h-4 w-4 inline" />
               </TableHead>
+              <TableHead>
+                Unit Price
+                <ArrowUpDown className="ml-1 h-4 w-4 inline" />
+              </TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -221,13 +239,32 @@ export default function InventoryTable({ showFilters = false }: InventoryTablePr
                 <TableCell>{product.zone?.name || "No zone"}</TableCell>
                 <TableCell>{product.currentStock}</TableCell>
                 <TableCell>{product.minStock}</TableCell>
+                <TableCell>{formatCurrency(product.unitPrice || 0)}</TableCell>
                 <TableCell>
                   {getStatusBadge(getStockStatus(product))}
                 </TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        setEditingProduct(product);
+                        setIsEditModalOpen(true);
+                      }}
+                    >
                       <Edit className="h-4 w-4 text-blue-600" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        setStockMovementProduct(product);
+                        setIsStockMovementModalOpen(true);
+                      }}
+                      title="Update Stock"
+                    >
+                      <StockMove className="h-4 w-4 text-green-600" />
                     </Button>
                     <Button variant="ghost" size="sm">
                       <Eye className="h-4 w-4 text-gray-600" />
@@ -254,6 +291,24 @@ export default function InventoryTable({ showFilters = false }: InventoryTablePr
           </div>
         )}
       </CardContent>
+      
+      <EditProductModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingProduct(null);
+        }}
+        product={editingProduct}
+      />
+      
+      <StockMovementModal
+        isOpen={isStockMovementModalOpen}
+        onClose={() => {
+          setIsStockMovementModalOpen(false);
+          setStockMovementProduct(null);
+        }}
+        product={stockMovementProduct}
+      />
     </Card>
   );
 }

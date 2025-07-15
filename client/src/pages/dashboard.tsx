@@ -12,10 +12,17 @@ import InventoryTable from "@/components/inventory-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TriangleAlert } from "lucide-react";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { useCurrencyUpdates } from "@/hooks/useCurrencyUpdates";
+import { formatCurrencyLarge } from "@/lib/currency";
 
 export default function Dashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
+  const { formatCurrency, userSettings } = useCurrency();
+  
+  // Enable real-time currency updates
+  useCurrencyUpdates();
 
   const { data: metrics, isLoading: metricsLoading, error } = useQuery({
     queryKey: ["/api/dashboard/metrics"],
@@ -131,7 +138,7 @@ export default function Dashboard() {
             />
             <MetricsCard
               title="Total Value"
-              value={`$${Math.round(metrics.totalValue / 1000)}K`}
+              value={formatCurrencyLarge(metrics.totalValue, userSettings)}
               icon="dollar"
               trend={{ value: 8.2, isPositive: true }}
               variant="success"

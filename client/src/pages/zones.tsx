@@ -35,6 +35,11 @@ export default function Zones() {
     retry: false,
   });
 
+  const { data: products } = useQuery({
+    queryKey: ["/api/products"],
+    retry: false,
+  });
+
   const {
     register,
     handleSubmit,
