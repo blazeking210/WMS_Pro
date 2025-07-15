@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Eye, Trash2, Plus, ArrowUpDown } from "lucide-react";
+import { Edit, Eye, Trash2, Plus, ArrowUpDown, Package } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +29,24 @@ export default function InventoryTable({ showFilters = false }: InventoryTablePr
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["/api/products", filters],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (filters.search) params.append("search", filters.search);
+      if (filters.category) params.append("category", filters.category);
+      if (filters.status !== "all") params.append("status", filters.status);
+      
+      const response = await fetch(`/api/products?${params.toString()}`, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
+    },
     retry: false,
   });
 

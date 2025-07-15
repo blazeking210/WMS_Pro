@@ -1,0 +1,52 @@
+[vite] connecting...
+[vite] connected.
+Package is not defined
+at InventoryTable (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/src/components/inventory-table.tsx:137:32)
+at renderWithHooks (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:11548:26)
+at updateFunctionComponent (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:14582:28)
+at beginWork (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:15924:22)
+at HTMLUnknownElement.callCallback2 (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:3674:22)
+at Object.invokeGuardedCallbackDev (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:3699:24)
+at invokeGuardedCallback (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:3733:39)
+at beginWork$1 (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:19765:15)
+at performUnitOfWork (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:19198:20)
+at workLoopSync (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:19137:13)
+Package is not defined
+at InventoryTable (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/src/components/inventory-table.tsx:137:32)
+at renderWithHooks (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:11548:26)
+at updateFunctionComponent (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:14582:28)
+at beginWork (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:15924:22)
+at HTMLUnknownElement.callCallback2 (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:3674:22)
+at Object.invokeGuardedCallbackDev (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:3699:24)
+at invokeGuardedCallback (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:3733:39)
+at beginWork$1 (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:19765:15)
+at performUnitOfWork (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:19198:20)
+at workLoopSync (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:19137:13)
+The above error occurred in the <InventoryTable> component:
+
+    at InventoryTable (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/src/components/inventory-table.tsx:30:42)
+    at main
+    at div
+    at div
+    at Dashboard (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/src/pages/dashboard.tsx:34:21)
+    at Route (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=23ec8667:323:16)
+    at Switch (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=23ec8667:379:17)
+    at Router (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/src/App.tsx?v=HtH3seKUASegx5bX8kUVp:34:42)
+    at Provider (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-JPEKVPVH.js?v=5d7b9bb8:58:15)
+    at TooltipProvider (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=94cdf2e4:56:5)
+    at QueryClientProvider (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=24694fa6:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+Package is not defined
+at InventoryTable (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/src/components/inventory-table.tsx:137:32)
+at renderWithHooks (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:11548:26)
+at updateFunctionComponent (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:14582:28)
+at beginWork (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:15924:22)
+at beginWork$1 (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:19753:22)
+at performUnitOfWork (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:19198:20)
+at workLoopSync (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:19137:13)
+at renderRootSync (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:19116:15)
+at recoverFromConcurrentError (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:18736:28)
+at performSyncWorkOnRoot (https://991646b4-5816-43fe-81dc-a78e8fe5de84-00-31pafzcivfnp0.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=5d7b9bb8:18879:28)

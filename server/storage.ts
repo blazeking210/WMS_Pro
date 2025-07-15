@@ -117,27 +117,7 @@ export class DatabaseStorage implements IStorage {
     status?: "all" | "in_stock" | "low_stock" | "out_of_stock";
     search?: string;
   }): Promise<ProductWithZone[]> {
-    let query = db
-      .select({
-        id: products.id,
-        productId: products.productId,
-        name: products.name,
-        description: products.description,
-        category: products.category,
-        zoneId: products.zoneId,
-        currentStock: products.currentStock,
-        minStock: products.minStock,
-        unitPrice: products.unitPrice,
-        isActive: products.isActive,
-        createdAt: products.createdAt,
-        updatedAt: products.updatedAt,
-        zone: zones,
-      })
-      .from(products)
-      .leftJoin(zones, eq(products.zoneId, zones.id))
-      .where(eq(products.isActive, true));
-
-    const conditions = [];
+    const conditions = [eq(products.isActive, true)];
 
     if (filters?.category) {
       conditions.push(eq(products.category, filters.category));
@@ -164,10 +144,7 @@ export class DatabaseStorage implements IStorage {
           break;
         case "low_stock":
           conditions.push(
-            and(
-              sql`${products.currentStock} <= ${products.minStock}`,
-              sql`${products.currentStock} > 0`
-            )
+            sql`${products.currentStock} <= ${products.minStock} AND ${products.currentStock} > 0`
           );
           break;
         case "out_of_stock":
@@ -176,11 +153,26 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-
-    const result = await query.orderBy(asc(products.name));
+    const result = await db
+      .select({
+        id: products.id,
+        productId: products.productId,
+        name: products.name,
+        description: products.description,
+        category: products.category,
+        zoneId: products.zoneId,
+        currentStock: products.currentStock,
+        minStock: products.minStock,
+        unitPrice: products.unitPrice,
+        isActive: products.isActive,
+        createdAt: products.createdAt,
+        updatedAt: products.updatedAt,
+        zone: zones,
+      })
+      .from(products)
+      .leftJoin(zones, eq(products.zoneId, zones.id))
+      .where(and(...conditions))
+      .orderBy(asc(products.name));
     
     return result.map(item => ({
       ...item,
@@ -266,7 +258,13 @@ export class DatabaseStorage implements IStorage {
 
   // Movement operations
   async getMovements(productId?: number, limit: number = 50): Promise<MovementWithProduct[]> {
-    let query = db
+    const conditions = [];
+
+    if (productId) {
+      conditions.push(eq(movements.productId, productId));
+    }
+
+    const result = await db
       .select({
         id: movements.id,
         productId: movements.productId,
@@ -283,14 +281,9 @@ export class DatabaseStorage implements IStorage {
       .from(movements)
       .leftJoin(products, eq(movements.productId, products.id))
       .leftJoin(users, eq(movements.userId, users.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(movements.createdAt))
       .limit(limit);
-
-    if (productId) {
-      query = query.where(eq(movements.productId, productId));
-    }
-
-    const result = await query;
     
     return result.map(item => ({
       ...item,
@@ -305,7 +298,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Dashboard metrics
-  async getDashboardMetrics() {
+  async getDashboardMetrics(): Promise<{
+    totalItems: number;
+    lowStockItems: number;
+    outOfStockItems: number;
+    totalValue: number;
+    recentActivities: MovementWithProduct[];
+    zoneStatus: Array<Zone & { itemCount: number; capacity: number }>;
+  }> {
     const [totalItems] = await db
       .select({ count: sql<number>`cast(count(*) as integer)` })
       .from(products)
@@ -341,7 +341,7 @@ export class DatabaseStorage implements IStorage {
 
     const recentActivities = await this.getMovements(undefined, 10);
 
-    const zoneStatus = await db
+    const zoneStatusResult = await db
       .select({
         id: zones.id,
         name: zones.name,
@@ -355,6 +355,11 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(products, and(eq(zones.id, products.zoneId), eq(products.isActive, true)))
       .groupBy(zones.id)
       .orderBy(asc(zones.name));
+
+    const zoneStatus = zoneStatusResult.map(zone => ({
+      ...zone,
+      capacity: zone.capacity || 0,
+    }));
 
     return {
       totalItems: totalItems.count,
@@ -373,7 +378,7 @@ export class DatabaseStorage implements IStorage {
       const [product] = await tx.select().from(products).where(eq(products.id, productId));
       if (!product) throw new Error("Product not found");
 
-      const previousStock = product.currentStock;
+      const previousStock = product.currentStock || 0;
       const newStock = type === "IN" ? previousStock + quantity : previousStock - quantity;
 
       if (newStock < 0) {
@@ -393,8 +398,8 @@ export class DatabaseStorage implements IStorage {
         quantity,
         previousStock,
         newStock,
-        reason,
-        userId,
+        reason: reason || null,
+        userId: userId || null,
       });
     });
   }
